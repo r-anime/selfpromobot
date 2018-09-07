@@ -122,7 +122,7 @@ def check_history(reddit, config, user):
             else:
                 history['other_posts'] += 1
         elif isinstance(item, praw.models.Comment):
-            if item.submission.author == item.author and selfpromotion(item.submission):
+            if item.is_submitter and selfpromotion(item.submission):
                 history['selfpromo_comments'] += 1
             else:
                 history['other_comments'] += 1
