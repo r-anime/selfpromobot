@@ -7,7 +7,7 @@ import time
 
 import logging
 
-DEBUG = True
+DEBUG = False
 
 logging.basicConfig(format = '%(asctime)s | %(levelname)s | %(message)s',
                     datefmt = '%H:%M:%S')
@@ -48,7 +48,7 @@ def main(reddit, config, dry_run = False):
                         logger.info('Not reporting because running a dry run')
                     else:
                         logger.info(f'Reporting post (ratio: {ratio})')
-                        post.report('Possible excessive self-promotion (ratio: {ratio})')
+                        post.report(f'Possible excessive self-promotion (ratio: {ratio})')
                 checked.append(post)
 
         # Only remember the most recent posts, as the others won't flow back into /new
