@@ -96,6 +96,7 @@ def check_history(reddit, config, user):
     :return: the updated history
     '''
     subreddit = reddit.subreddit(config['subreddit'])
+    max_history = int(config['history'])
 
     # TODO -- reload known information about the user
     # For now, we read the history on each verification
@@ -105,7 +106,7 @@ def check_history(reddit, config, user):
     history['last_checked'] = time.time() # Record check time before verification
     ignored_items = 0 # Many posts on other subs can reduce accuracy
 
-    for item in user.new(limit = 1000):
+    for item in user.new(limit = max_history):
         # Early exit if history was already checked
         if last_check is not None and item.created_utc < last_check:
             break
