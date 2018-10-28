@@ -42,6 +42,12 @@ def main(reddit, config):
                 if is_selfpromotion(post):
                     logger.info(f'Found self-promotion {post} by {post.author.name}')
                     check_sp_ratio(reddit, config, post)
+                if is_oc_fanart(post):
+                    logger.info(f'Found OC fanart {post} by {post.author.name}')
+                    check_fanart_frequency(reddit, config, post)
+                if is_clip(post):
+                    logger.info(f'Found clip {post} by {post.author.name}')
+                    check_clip_frequency(reddit, config, post)
                 checked.append(post)
 
         # Only remember the most recent posts, as the others won't flow back into /new
@@ -51,9 +57,9 @@ def main(reddit, config):
 
 def report(post, reason):
     if DEBUG:
-        print('  !-> Not reporting in debug mode')
+        logger.info('  !-> Not reporting in debug mode')
     else:
-        print('  --> Reporting post')
+        logger.info('  --> Reporting post')
         post.report(reason)
 
 
@@ -69,7 +75,6 @@ def check_sp_ratio(reddit, config, post):
     :param reddit: the praw Reddit instance
     :param config: config options dict
     :param user: the user whose ratio must be verified
-    :return: the user ratio
     '''
     threshold = float(config['threshold'])
     user = post.author
@@ -86,7 +91,7 @@ def check_sp_ratio(reddit, config, post):
     if ratio > threshold:
         report(post, f'Possible excessive self-promotion (ratio: {ratio})')
 
-    return ratio
+    logger.debug(f'Finished checking history of {post.author.name} for SP ratio')
 
 
 def read_history(reddit, config, user):
@@ -108,10 +113,13 @@ def read_history(reddit, config, user):
                'selfpromo_comments': 0,
                'other_comments': 0}
 
+    found_items = 0
     for item in user.new(limit = max_history):
         # Running as mod will return removed items - skip them
-        if item.subreddit.display_name == "anime" and item.removed:
+        if item.subreddit.display_name == config['subreddit'] and item.removed:
             continue
+        else:
+            found_items += 1
 
         if isinstance(item, praw.models.Submission):
             if is_selfpromotion(item):
@@ -126,7 +134,7 @@ def read_history(reddit, config, user):
         else:
             logger.error(f'Found unknown item in user history: {item}')
 
-    logger.info(f'Checked history for user {user.name}')
+    logger.info(f'Checked {found_items} items for user {user.name}')
     logger.debug(str(history))
 
     return history
@@ -179,6 +187,53 @@ def is_selfpromotion(post):
 
     return False
 
+
+##########################################
+# OC fanart frequency verification block #
+##########################################
+
+def check_fanart_frequency(reddit, config, post):
+    count = 0
+    for submission in post.author.submissions.new():
+        created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
+        if datetime.now(timezone.utc) - created_at > timedelta(days = 7):
+            break
+        if is_oc_fanart(submission):
+            count += 1
+        if count > 1:
+            report(post, f'Recent fanart (id: {submission.id})')
+
+    logger.debug(f'Finished checking history of {post.author.name} for fanart frequency')
+
+def is_oc_fanart(post):
+    return post.subreddit.display_name == config['subreddit'] \
+           and post.link_flair_text == 'Fanart' \
+           and (post.is_original_content or not post.is_self)
+
+
+#####################################
+# Clip frequency verification block #
+#####################################
+
+def check_clip_frequency(reddit, config, post):
+    count = 0
+    for submission in post.author.submissions.new():
+        created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
+        if datetime.now(timezone.utc) - created_at > timedelta(days = 7):
+            break
+        if is_clip(submission):
+            count += 1
+        if count > 4:
+            report(post, f'Too many clips submitted')
+
+    logger.debug(f'Finished checking history of {post.author.name} for clip frequency')
+
+def is_clip(post):
+    return post.subreddit.display_name == config['subreddit'] \
+           and post.link_flair_text == 'Clip'
+
+
+#####################################
 
 if __name__ == '__main__':
     c = configparser.ConfigParser()
