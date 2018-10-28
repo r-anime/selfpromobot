@@ -8,21 +8,20 @@ from datetime import datetime, timezone, timedelta
 
 import logging
 
-DEBUG = False
+DEBUG = True
 
-logging.basicConfig(format = '%(asctime)s | %(levelname)s | %(message)s',
+logging.basicConfig(format = '%(asctime)s | %(levelname)s \t| %(message)s',
                     datefmt = '%H:%M:%S')
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 
-def main(reddit, config, dry_run = False):
+def main(reddit, config):
     '''
     Main loop.
 
     :param reddit: the praw Reddit instance
     :param config: config options dict
-    :param dry_run: if True, no report will be made
     '''
 
     subreddit = reddit.subreddit(config['subreddit'])
@@ -33,15 +32,16 @@ def main(reddit, config, dry_run = False):
     checked = list()
 
     logger.info(f'Running as {reddit.user.me().name} on subreddit {subreddit.display_name}')
-    if dry_run:
-        logger.warning('Running in dry run mode')
+    if DEBUG:
+        logger.warning('Running in debug mode')
 
     while True:
         logger.debug(f'Checking for the {posts_per_run} most recent posts')
         for post in subreddit.new(limit = posts_per_run):
-            if selfpromotion(post) and not post in checked:
-                logger.info(f'Found self-promotion {post} by {post.author.name}')
-                check_ratio(reddit, config, post, dry_run = dry_run)
+            if not post in checked:
+                if is_selfpromotion(post):
+                    logger.info(f'Found self-promotion {post} by {post.author.name}')
+                    check_sp_ratio(reddit, config, post)
                 checked.append(post)
 
         # Only remember the most recent posts, as the others won't flow back into /new
@@ -49,8 +49,19 @@ def main(reddit, config, dry_run = False):
 
         time.sleep(interval)
 
+def report(post, reason):
+    if DEBUG:
+        print('  !-> Not reporting in debug mode')
+    else:
+        print('  --> Reporting post')
+        post.report(reason)
 
-def check_ratio(reddit, config, post, dry_run = False):
+
+#####################################
+# Self-promotion verification block #
+#####################################
+
+def check_sp_ratio(reddit, config, post):
     '''
     Perform the post verification.
     This function reports if a user is above the self-promotion threshold.
@@ -63,7 +74,7 @@ def check_ratio(reddit, config, post, dry_run = False):
     threshold = float(config['threshold'])
     user = post.author
 
-    history = check_history(reddit, config, user)
+    history = read_history(reddit, config, user)
 
     ratio = history['selfpromo_posts'] / (history['selfpromo_posts'] + history['other_posts'] + history['other_comments'])
     ratio = round(ratio, 2)
@@ -72,36 +83,13 @@ def check_ratio(reddit, config, post, dry_run = False):
 
     # Check the ratio once per self-promotion post
     logger.info(f'  Ratio: {ratio}')
-    if len(history['recent_posts']) > 1:
-        logger.info(f'  Last post: {history["recent_posts"][1].id}')
-
     if ratio > threshold:
-        if dry_run:
-            logger.info('Not reporting because running a dry run')
-        else:
-            logger.info('  --> Reporting post')
-            post.report(f'Possible excessive self-promotion (ratio: {ratio})')
-    if len(history['recent_posts']) > 1:
-        if dry_run:
-            logger.info('Not reporting because running a dry run')
-        else:
-            logger.info('  --> Reporting post')
-            post.report(f'Too recent self-promotion (post: {history["recent_posts"][1].id})')
+        report(post, f'Possible excessive self-promotion (ratio: {ratio})')
 
     return ratio
 
 
-def _new_history():
-    return {
-            'last_checked': None,
-            'selfpromo_posts': 0,
-            'other_posts': 0,
-            'selfpromo_comments': 0,
-            'other_comments': 0,
-            'recent_posts': [],
-            }
-
-def check_history(reddit, config, user):
+def read_history(reddit, config, user):
     '''
     Read submitted content from user since last verification.
     Updates the history.
@@ -115,35 +103,23 @@ def check_history(reddit, config, user):
     subreddit = reddit.subreddit(config['subreddit'])
     max_history = int(config['history'])
 
-    # TODO -- reload known information about the user
-    # For now, we read the history on each verification
-    history = _new_history()
-
-    last_check = history['last_checked']
-    history['last_checked'] = time.time() # Record check time before verification
-    ignored_items = 0 # Many posts on other subs can reduce accuracy
+    history = {'selfpromo_posts': 0,
+               'other_posts': 0,
+               'selfpromo_comments': 0,
+               'other_comments': 0}
 
     for item in user.new(limit = max_history):
-        # Early exit if history was already checked
-        if last_check is not None and item.created_utc < last_check:
-            break
-        # Ignore content on other subreddits
-        #if item.subreddit != subreddit:
-        #    ignored_items += 1
-        #    continue
-
-        recent = (datetime.now(timezone.utc) - datetime.fromtimestamp(item.created_utc, tz = timezone.utc) < timedelta(days = 7))
+        # Running as mod will return removed items - skip them
+        if item.subreddit.display_name == "anime" and item.removed:
+            continue
 
         if isinstance(item, praw.models.Submission):
-            if selfpromotion(item):
+            if is_selfpromotion(item):
                 history['selfpromo_posts'] += 1
-                #logger.warning(f'Found post that should have been already recorded (id={item.id})')
-                if recent and item.subreddit == subreddit:
-                    history['recent_posts'].append(item)
             else:
                 history['other_posts'] += 1
         elif isinstance(item, praw.models.Comment):
-            if item.is_submitter and selfpromotion(item.submission):
+            if item.is_submitter and is_selfpromotion(item.submission):
                 history['selfpromo_comments'] += 1
             else:
                 history['other_comments'] += 1
@@ -156,16 +132,52 @@ def check_history(reddit, config, user):
     return history
 
 
-
-def selfpromotion(post):
+def is_selfpromotion(post):
     '''
-    Decide if a post is self-promotion.
+    Heuristically decide if a post is self-promotion.
 
     :param post: the post to check
     :return: True is post is self-promotion, false otherwise
     '''
-    return (post.link_flair_text == 'Fanart' and not post.is_self) or post.is_original_content or post.is_video
+    # Based on user flairing
+    if post.is_original_content:
+        return True
+    if post.link_flair_text == 'Fanart' and not post.is_self:
+        return True
+    if post.link_flair_text == 'Question':
+        return False
+    if post.link_flair_text == 'News':
+        return False
+    if post.link_flair_text == 'Rewatch':
+        return False
+    if post.link_flair_text == 'Official Media':
+        return False
+    if post.link_flair_text == 'Clip':
+        return False
 
+    # Based on post title
+    if '[oc]' in post.title.lower() or 'original' in post.title.lower():
+        return True
+    if 'made' in post.title.lower() or 'drew' in post.title.lower():
+        return True
+
+    # Based on url
+    #if post.is_video or post.is_reddit_media_domain:
+    #    return True
+
+    if 'imgur.com' in post.url:
+        return True
+    if 'youbube.com' in post.url or 'youtu.be' in post.url:
+        return True
+
+    domains = ['deviantart.com', 'instagram.com', 'artstation.com']
+    for domain in domains:
+        if post.is_self and domain in post.selftext:
+            return True
+        elif domain in post.url:
+            return True
+
+    return False
 
 
 if __name__ == '__main__':
@@ -177,4 +189,4 @@ if __name__ == '__main__':
     config = c['Options']
     logger.debug(f'Found {len(config)} config options')
 
-    main(reddit, config, dry_run = DEBUG)
+    main(reddit, config)
