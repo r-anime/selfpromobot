@@ -8,12 +8,11 @@ from datetime import datetime, timezone, timedelta
 
 import logging
 
-DEBUG = True
+global DEBUG
 
 logging.basicConfig(format = '%(asctime)s | %(levelname)s \t| %(message)s',
                     datefmt = '%H:%M:%S')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
 
 def main(reddit, config):
@@ -249,5 +248,8 @@ if __name__ == '__main__':
     reddit = praw.Reddit(**c['Auth'])
     config = c['Options']
     logger.debug(f'Found {len(config)} config options')
+
+    DEBUG = config.getboolean('debug', True)
+    logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 
     main(reddit, config)
