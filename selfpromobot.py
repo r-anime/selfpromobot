@@ -195,6 +195,9 @@ def is_selfpromotion(post):
 def check_fanart_frequency(reddit, config, post):
     count = 0
     for submission in post.author.submissions.new():
+        if item.subreddit.display_name == config['subreddit'] and item.removed:
+            continue
+
         created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
         if datetime.now(timezone.utc) - created_at > timedelta(days = 7):
             break
@@ -218,6 +221,9 @@ def is_oc_fanart(post):
 def check_clip_frequency(reddit, config, post):
     count = 0
     for submission in post.author.submissions.new():
+        if item.subreddit.display_name == config['subreddit'] and item.removed:
+            continue
+
         created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
         if datetime.now(timezone.utc) - created_at > timedelta(days = 7):
             break
