@@ -174,7 +174,7 @@ def is_selfpromotion(post):
 
     if 'imgur.com' in post.url:
         return True
-    if 'youbube.com' in post.url or 'youtu.be' in post.url:
+    if 'youtube.com' in post.url or 'youtu.be' in post.url:
         return True
 
     domains = ['deviantart.com', 'instagram.com', 'artstation.com']
