@@ -163,9 +163,9 @@ def is_selfpromotion(post):
         return False
 
     # Based on post title
-    if '[oc]' in post.title.lower() or 'original' in post.title.lower():
+    if '[oc]' in post.title.lower() or '[original]' in post.title.lower():
         return True
-    if 'made' in post.title.lower() or 'drew' in post.title.lower():
+    if 'i made' in post.title.lower() or 'i drew' in post.title.lower():
         return True
 
     # Based on url
