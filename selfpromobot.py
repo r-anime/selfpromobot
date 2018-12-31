@@ -38,12 +38,12 @@ def main(reddit, config):
         logger.debug(f'Checking for the {posts_per_run} most recent posts')
         for post in subreddit.new(limit = posts_per_run):
             if not post in checked:
-                if is_selfpromotion(post):
-                    logger.info(f'Found self-promotion {post} by {post.author.name}')
-                    check_sp_ratio(reddit, config, post)
                 if is_oc_fanart(post):
                     logger.info(f'Found OC fanart {post} by {post.author.name}')
                     check_fanart_frequency(reddit, config, post)
+                if is_selfpromotion(post):
+                    logger.info(f'Found self-promotion {post} by {post.author.name}')
+                    check_sp_ratio(reddit, config, post)
                 if is_clip(post):
                     logger.info(f'Found clip {post} by {post.author.name}')
                     check_clip_frequency(reddit, config, post)
