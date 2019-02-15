@@ -84,8 +84,7 @@ def check_sp_ratio(reddit, config, post):
 
     history = read_history(reddit, config, user)
 
-    ratio = history['selfpromo_posts'] \
-            -1 \ # Allow the first post to be self-promo
+    ratio = (history['selfpromo_posts'] - 1) \
             / (history['selfpromo_posts'] \
                 + history['other_posts'] \
                 + history['other_comments'])
