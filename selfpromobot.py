@@ -118,6 +118,7 @@ def read_history(reddit, config, user):
     history = {'selfpromo_posts': 0,
                'other_posts': 0,
                'selfpromo_comments': 0,
+               'ignored_comments': 0,
                'other_comments': 0}
 
     found_items = 0
@@ -135,7 +136,9 @@ def read_history(reddit, config, user):
                 history['other_posts'] += 1
         elif isinstance(item, praw.models.Comment):
             if item.is_submitter and is_selfpromotion(item.submission):
-                history['selfpromo_comments'] += 1
+                history['ignored_comments'] += 1
+            elif is_selfpromotion_comment(item):
+                history['selfpromo_comments'] +=1
             else:
                 history['other_comments'] += 1
         else:
@@ -201,6 +204,14 @@ def is_selfpromotion(post):
         elif domain in post.url:
             return True
 
+    return False
+
+def is_selfpromotion_comment(comment):
+    domains = ['deviantart.com', 'instagram.com', 'artstation.com',
+               'patreon.com', 'pixiv.net']
+    for domain in domains:
+        if domain in comment.body.lower():
+            return True
     return False
 
 
