@@ -10,8 +10,9 @@ import logging
 
 global DEBUG
 
-logging.basicConfig(format = '%(asctime)s | %(levelname)s \t| %(message)s',
-                    datefmt = '%H:%M:%S')
+#logging.basicConfig(format = '%(asctime)s | %(levelname)s \t| %(message)s',
+#                    datefmt = '%H:%M:%S')
+logging.basicConfig(format = '%(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -58,7 +59,7 @@ def main(reddit, config):
 
         time.sleep(interval)
 
-def report(post, reasons):
+def report(post, reason):
     if DEBUG:
         logger.info('  !-> Not reporting in debug mode')
     else:
