@@ -38,12 +38,16 @@ def main(reddit, config):
         logger.debug(f'Checking for the {posts_per_run} most recent posts')
         for post in subreddit.new(limit = posts_per_run):
             if not post in checked:
-                if is_selfpromotion(post):
-                    logger.info(f'Found self-promotion {post} by {post.author.name}')
-                    check_sp_ratio(reddit, config, post)
+                # Note : only the first violation will be reported
+                # Check fanart frequency
                 if is_oc_fanart(post):
                     logger.info(f'Found OC fanart {post} by {post.author.name}')
                     check_fanart_frequency(reddit, config, post)
+                # Check self-promo ratio
+                if is_selfpromotion(post):
+                    logger.info(f'Found self-promotion {post} by {post.author.name}')
+                    check_sp_ratio(reddit, config, post)
+                # Check clip frequency
                 if is_clip(post):
                     logger.info(f'Found clip {post} by {post.author.name}')
                     check_clip_frequency(reddit, config, post)
@@ -54,7 +58,7 @@ def main(reddit, config):
 
         time.sleep(interval)
 
-def report(post, reason):
+def report(post, reasons):
     if DEBUG:
         logger.info('  !-> Not reporting in debug mode')
     else:
@@ -80,7 +84,11 @@ def check_sp_ratio(reddit, config, post):
 
     history = read_history(reddit, config, user)
 
-    ratio = history['selfpromo_posts'] / (history['selfpromo_posts'] + history['other_posts'] + history['other_comments'])
+    ratio = history['selfpromo_posts'] \
+            -1 \ # Allow the first post to be self-promo
+            / (history['selfpromo_posts'] \
+                + history['other_posts'] \
+                + history['other_comments'])
     ratio = round(ratio, 2)
 
     logger.debug(f'User {user.name} has ratio {ratio}')
@@ -149,7 +157,11 @@ def is_selfpromotion(post):
     # Based on user flairing
     if post.is_original_content:
         return True
+    if post.link_flair_text == 'OC Fanart':
+        return True
     if post.link_flair_text == 'Fanart' and not post.is_self:
+        return True
+    if post.link_flair_text == 'Fanart Misc' and not post.is_self:
         return True
     if post.link_flair_text == 'Question':
         return False
@@ -163,14 +175,19 @@ def is_selfpromotion(post):
         return False
 
     # Based on post title
-    if '[oc]' in post.title.lower() or 'original' in post.title.lower():
+    title = post.title.lower()
+    if '[oc]' in title or '(oc)' in title or 'original' in title:
         return True
-    if 'made' in post.title.lower() or 'drew' in post.title.lower():
+    if 'made' in title or 'drew' in title or 'my ' in title:
+        return True
+    if 'tried' in title or 'attempt' in title:
+        return True
+    if 'sketch' in title:
         return True
 
     # Based on url
-    #if post.is_video or post.is_reddit_media_domain:
-    #    return True
+    if post.is_video or post.is_reddit_media_domain:
+        return True
 
     if 'imgur.com' in post.url:
         return True
@@ -209,8 +226,8 @@ def check_fanart_frequency(reddit, config, post):
 
 def is_oc_fanart(post):
     return post.subreddit.display_name == config['subreddit'] \
-           and post.link_flair_text == 'Fanart' \
-           and (post.is_original_content or not post.is_self)
+           and post.link_flair_text == 'OC Fanart' \
+           or (post.link_flair_text == 'Fanart Misc' and post.is_original_content)
 
 
 #####################################
