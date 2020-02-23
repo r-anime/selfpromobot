@@ -189,8 +189,9 @@ def is_selfpromotion(post):
         return True
 
     # Based on url
-    #if post.is_video or post.is_reddit_media_domain:
-    #    return True
+    if (post.is_video or post.is_reddit_media_domain) \
+            and post.subreddit.display_name == config['subreddit']:
+        return True
 
     if 'imgur.com' in post.url:
         return True
