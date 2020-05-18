@@ -52,6 +52,10 @@ def main(reddit, config):
                 if is_clip(post):
                     logger.info(f'Found clip {post} by {post.author.name}')
                     check_clip_frequency(reddit, config, post)
+                # Check video frequency
+                if is_video(post):
+                    logger.info(f'Found video {post} by {post.author.name}')
+                    check_video_frequency(reddit, config, post)
                 checked.append(post)
 
         # Only remember the most recent posts, as the others won't flow back into /new
@@ -257,7 +261,7 @@ def check_clip_frequency(reddit, config, post):
             break
         if is_clip(submission):
             count += 1
-        if count > 4:
+        if count > 1:
             report(post, f'Too many clips submitted')
 
     logger.debug(f'Finished checking history of {post.author.name} for clip frequency')
@@ -265,6 +269,31 @@ def check_clip_frequency(reddit, config, post):
 def is_clip(post):
     return post.subreddit.display_name == config['subreddit'] \
            and post.link_flair_text == 'Clip'
+
+
+#####################################
+# Video frequency verification block #
+#####################################
+
+def check_video_frequency(reddit, config, post):
+    count = 0
+    for submission in post.author.submissions.new():
+        if submission.subreddit.display_name == config['subreddit'] and submission.removed:
+            continue
+
+        created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
+        if datetime.now(timezone.utc) - created_at > timedelta(days = 7):
+            break
+        if is_video(submission):
+            count += 1
+        if count > 4:
+            report(post, f'Too many videos submitted')
+
+    logger.debug(f'Finished checking history of {post.author.name} for video frequency')
+
+def is_video(post):
+    return post.subreddit.display_name == config['subreddit'] \
+           and post.link_flair_text == 'Video'
 
 
 #####################################
