@@ -70,6 +70,15 @@ def report(post, reason):
         logger.info('  --> Reporting post')
         post.report(reason)
 
+def remove(post, reason, message=None):
+    if DEBUG:
+        logger.info('  !-> Not removing in debug mode')
+    else:
+        logger.info('  --> Moving post')
+        post.mod.remove(mod_note=reason)
+        if message is not None:
+            post.mod.send_removal_message(message)
+
 
 #####################################
 # Self-promotion verification block #
@@ -237,6 +246,7 @@ def check_fanart_frequency(reddit, config, post):
             count += 1
         if count > 1:
             report(post, f'Recent fanart (id: {submission.id})')
+            remove(post, f'Recent fanart (id: {submission.id})', message='You can only submit one fanart every 7 days.')
 
     logger.debug(f'Finished checking history of {post.author.name} for fanart frequency')
 
@@ -263,6 +273,7 @@ def check_clip_frequency(reddit, config, post):
             count += 1
         if count > 1:
             report(post, f'Too many clips submitted')
+            remove(post, f'Too many clips submitted', message="You can only submit one clip every 7 days.")
 
     logger.debug(f'Finished checking history of {post.author.name} for clip frequency')
 
@@ -288,6 +299,7 @@ def check_video_frequency(reddit, config, post):
             count += 1
         if count > 4:
             report(post, f'Too many videos submitted')
+            remove(post, f'Too many videos submitted', message="You can only submit 4 videos at most every 7 days")
 
     logger.debug(f'Finished checking history of {post.author.name} for video frequency')
 
