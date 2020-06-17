@@ -74,7 +74,10 @@ def remove(post, reason, message=None):
     if DEBUG:
         logger.info('  !-> Not removing in debug mode')
     else:
-        logger.info('  --> Moving post')
+        logger.info('  --> Removing post')
+        if post.removed:
+            logger.warning('  !-> Post already removed')
+            return
         post.mod.remove(mod_note=reason)
         if message is not None:
             post.mod.send_removal_message(message)
@@ -98,10 +101,9 @@ def check_sp_ratio(reddit, config, post):
 
     history = read_history(reddit, config, user)
 
-    ratio = (history['selfpromo_posts'] - 1) \
-            / (history['selfpromo_posts'] \
-                + history['other_posts'] \
-                + history['other_comments'])
+    ratio = history['selfpromo_posts'] / (history['selfpromo_posts'] \
+                                          + history['other_posts'] \
+                                          + history['other_comments'])
     ratio = round(ratio, 2)
 
     logger.debug(f'User {user.name} has ratio {ratio}')
@@ -246,6 +248,7 @@ def check_fanart_frequency(reddit, config, post):
             count += 1
         if count > 1:
             remove(post, f'Recent fanart (id: {submission.id})', message='You can only submit one fanart every 7 days.')
+            break
 
     logger.debug(f'Finished checking history of {post.author.name} for fanart frequency')
 
@@ -272,6 +275,7 @@ def check_clip_frequency(reddit, config, post):
             count += 1
         if count > 1:
             remove(post, f'Too many clips submitted', message="You can only submit one clip every 7 days.")
+            break
 
     logger.debug(f'Finished checking history of {post.author.name} for clip frequency')
 
@@ -297,6 +301,7 @@ def check_video_frequency(reddit, config, post):
             count += 1
         if count > 4:
             remove(post, f'Too many videos submitted', message="You can only submit 4 videos at most every 7 days")
+            break
 
     logger.debug(f'Finished checking history of {post.author.name} for video frequency')
 
