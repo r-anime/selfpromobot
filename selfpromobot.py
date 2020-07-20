@@ -80,6 +80,7 @@ def remove(post, reason, message=None):
             return
         post.mod.remove(mod_note=reason)
         if message is not None:
+            formatted_message = "This post has been removed. " + message + "\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](/message/compose/?to=/r/anime) if you have any questions or concerns.*"
             post.mod.send_removal_message(message)
 
 
@@ -300,7 +301,7 @@ def check_video_frequency(reddit, config, post):
         if is_video(submission):
             count += 1
         if count > 4:
-            remove(post, f'Too many videos submitted', message="You can only submit 4 videos at most every 7 days")
+            remove(post, f'Too many videos submitted', message="You can only submit 4 videos at most every 7 days.")
             break
 
     logger.debug(f'Finished checking history of {post.author.name} for video frequency')
