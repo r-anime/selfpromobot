@@ -75,13 +75,22 @@ def remove(post, reason, message=None):
         logger.info('  !-> Not removing in debug mode')
     else:
         logger.info('  --> Removing post')
-        if post.removed:
+        if is_removed(post):
             logger.warning('  !-> Post already removed')
             return
         post.mod.remove(mod_note=reason)
         if message is not None:
             formatted_message = "This post has been removed. " + message + "\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](/message/compose/?to=/r/anime) if you have any questions or concerns.*"
             post.mod.send_removal_message(message)
+
+def is_removed(item):
+    if isinstance(item, praw.models.Submission):
+        return item.removed or item.removed_by_category is None
+    elif isinstance(item, praw.models.Comment):
+        return item.removed or item.body == '[removed]'
+    else:
+        logger.error(f'Wrong item class detected for item {item}')
+        return True
 
 
 #####################################
@@ -140,7 +149,7 @@ def read_history(reddit, config, user):
     found_items = 0
     for item in user.new(limit = max_history):
         # Running as mod will return removed items - skip them
-        if item.subreddit.display_name == config['subreddit'] and item.removed:
+        if item.subreddit.display_name == config['subreddit'] and is_removed(item):
             continue
         else:
             found_items += 1
@@ -239,7 +248,7 @@ def is_selfpromotion_comment(comment):
 def check_fanart_frequency(reddit, config, post):
     count = 0
     for submission in post.author.submissions.new():
-        if submission.subreddit.display_name == config['subreddit'] and submission.removed:
+        if submission.subreddit.display_name == config['subreddit'] and is_removed(submission):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
@@ -266,7 +275,7 @@ def is_oc_fanart(post):
 def check_clip_frequency(reddit, config, post):
     count = 0
     for submission in post.author.submissions.new():
-        if submission.subreddit.display_name == config['subreddit'] and submission.removed:
+        if submission.subreddit.display_name == config['subreddit'] and is_removed(submission):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
@@ -292,7 +301,7 @@ def is_clip(post):
 def check_video_frequency(reddit, config, post):
     count = 0
     for submission in post.author.submissions.new():
-        if submission.subreddit.display_name == config['subreddit'] and submission.removed:
+        if submission.subreddit.display_name == config['subreddit'] and is_removed(submission):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
