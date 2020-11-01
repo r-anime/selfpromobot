@@ -84,13 +84,7 @@ def remove(post, reason, message=None):
             post.mod.send_removal_message(message)
 
 def is_removed(item):
-    if isinstance(item, praw.models.Submission):
-        return item.removed or item.removed_by_category is None
-    elif isinstance(item, praw.models.Comment):
-        return item.removed or item.body == '[removed]'
-    else:
-        logger.error(f'Wrong item class detected for item {item}')
-        return True
+    return item.removed or item.banned_by is not None
 
 
 #####################################
@@ -279,12 +273,12 @@ def check_clip_frequency(reddit, config, post):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
-        if datetime.now(timezone.utc) - created_at > timedelta(days = 7):
+        if datetime.now(timezone.utc) - created_at > timedelta(days = 31):
             break
         if is_clip(submission):
             count += 1
-        if count > 1:
-            remove(post, f'Too many clips submitted', message="You can only submit one clip every 7 days.")
+        if count > 2:
+            remove(post, f'Too many clips submitted', message="You can only submit two clips every month.")
             break
 
     logger.debug(f'Finished checking history of {post.author.name} for clip frequency')
