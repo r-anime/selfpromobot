@@ -52,6 +52,10 @@ def main(reddit, config):
                 if is_clip(post):
                     logger.info(f'Found clip {post} by {post.author.name}')
                     check_clip_frequency(reddit, config, post)
+                # Check video edit frequency
+                if is_video_edit(post):
+                    logger.info(f'Found video edit {post} by {post.author.name}')
+                    check_video_edit_frequency(reddit, config, post)
                 # Check video frequency
                 if is_video(post):
                     logger.info(f'Found video {post} by {post.author.name}')
@@ -273,12 +277,12 @@ def check_clip_frequency(reddit, config, post):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
-        if datetime.now(timezone.utc) - created_at > timedelta(days = 31):
+        if datetime.now(timezone.utc) - created_at > timedelta(days = 30):
             break
         if is_clip(submission):
             count += 1
         if count > 2:
-            remove(post, f'Too many clips submitted', message="You can only submit two clips every month.")
+            remove(post, f'Too many clips submitted', message="You may only submit two clips every 30 days.")
             break
 
     logger.debug(f'Finished checking history of {post.author.name} for clip frequency')
@@ -286,6 +290,32 @@ def check_clip_frequency(reddit, config, post):
 def is_clip(post):
     return post.subreddit.display_name == config['subreddit'] \
            and post.link_flair_text == 'Clip'
+
+
+#####################################
+# Video Edit frequency verification block #
+#####################################
+
+def check_video_edit_frequency(reddit, config, post):
+    count = 0
+    for submission in post.author.submissions.new():
+        if submission.subreddit.display_name == config['subreddit'] and is_removed(submission):
+            continue
+
+        created_at = datetime.fromtimestamp(submission.created_utc, tz = timezone.utc)
+        if datetime.now(timezone.utc) - created_at > timedelta(days = 30):
+            break
+        if is_video_edit(submission):
+            count += 1
+        if count > 2:
+            remove(post, f'Too many clips submitted', message="You may only submit two video edits every 30 days.")
+            break
+
+    logger.debug(f'Finished checking history of {post.author.name} for video edit frequency')
+
+def is_video_edit(post):
+    return post.subreddit.display_name == config['subreddit'] \
+           and post.link_flair_text == 'Video Edit'
 
 
 #####################################
@@ -303,8 +333,8 @@ def check_video_frequency(reddit, config, post):
             break
         if is_video(submission):
             count += 1
-        if count > 4:
-            remove(post, f'Too many videos submitted', message="You can only submit 4 videos at most every 7 days.")
+        if count > 2:
+            remove(post, f'Too many videos submitted', message="You can only submit 2 videos at most every 7 days.")
             break
 
     logger.debug(f'Finished checking history of {post.author.name} for video frequency')
