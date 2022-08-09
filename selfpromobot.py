@@ -346,12 +346,33 @@ def is_video(post):
 
 #####################################
 
+
+def get_reddit_instance(config_dict: dict):
+    """
+    Initialize a reddit instance and return it.
+
+    :param config_dict: dict containing necessary values for authenticating
+    :return: reddit instance
+    """
+
+    auth_dict = {**config_dict}
+    password = config_dict["password"]
+    totp_secret = config_dict.get("totp_secret")
+
+    if totp_secret:
+        import mintotp
+        auth_dict["password"] = f"{password}:{mintotp.totp(totp_secret)}"
+
+    reddit_instance = praw.Reddit(**auth_dict)
+    return reddit_instance
+
+
 if __name__ == '__main__':
     c = configparser.ConfigParser()
     c.read('config.ini')
     logger.debug('Loaded config.ini')
 
-    reddit = praw.Reddit(**c['Auth'])
+    reddit = get_reddit_instance(c['Auth'])
     config = c['Options']
     logger.debug(f'Found {len(config)} config options')
 
