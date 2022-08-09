@@ -45,9 +45,9 @@ def main(reddit, config):
                     logger.info(f'Found OC fanart {post} by {post.author.name}')
                     check_fanart_frequency(reddit, config, post)
                 # Check self-promo ratio
-                if is_selfpromotion(post):
-                    logger.info(f'Found self-promotion {post} by {post.author.name}')
-                    check_sp_ratio(reddit, config, post)
+                # if is_selfpromotion(post):
+                #     logger.info(f'Found self-promotion {post} by {post.author.name}')
+                #     check_sp_ratio(reddit, config, post)
                 # Check clip frequency
                 if is_clip(post):
                     logger.info(f'Found clip {post} by {post.author.name}')
