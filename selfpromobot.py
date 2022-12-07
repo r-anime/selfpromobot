@@ -15,6 +15,11 @@ global DEBUG
 logging.basicConfig(format="%(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
+REMOVAL_MESSAGE_TEMPLATE = """Sorry, your submission has been removed.\n\n{message}\n\n
+*I am a bot, and this action was performed automatically. Please
+[contact the moderators of this subreddit](https://www.reddit.com/message/compose/?to=/r/anime)
+if you have any questions or concerns.*"""
+
 
 def main(reddit, config):
     """
@@ -41,8 +46,8 @@ def main(reddit, config):
             if not post in checked:
                 # Note : only the first violation will be reported
                 # Check fanart frequency
-                if is_oc_fanart(post):
-                    logger.info(f"Found OC fanart {post} by {post.author.name}")
+                if is_fanart(post):
+                    logger.info(f"Found fanart {post} by {post.author.name}")
                     check_fanart_frequency(reddit, config, post)
                 # Check self-promo ratio
                 # if is_selfpromotion(post):
@@ -86,12 +91,8 @@ def remove(post, reason, message=None):
             return
         post.mod.remove(mod_note=reason)
         if message is not None:
-            formatted_message = (
-                "This post has been removed. "
-                + message
-                + "\n\n*I am a bot, and this action was performed automatically. Please [contact the moderators of this subreddit](/message/compose/?to=/r/anime) if you have any questions or concerns.*"
-            )
-            post.mod.send_removal_message(message)
+            formatted_message = REMOVAL_MESSAGE_TEMPLATE.format(message=message)
+            post.mod.send_removal_message(formatted_message)
 
 
 def is_removed(item):
@@ -262,7 +263,7 @@ def check_fanart_frequency(reddit, config, post):
         created_at = datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
         if datetime.now(timezone.utc) - created_at > timedelta(days=7):
             break
-        if is_oc_fanart(submission):
+        if is_fanart(submission):
             count += 1
         if count > 1:
             remove(post, f"Recent fanart (id: {submission.id})", message="You can only submit one fanart every 7 days.")
@@ -271,11 +272,10 @@ def check_fanart_frequency(reddit, config, post):
     logger.debug(f"Finished checking history of {post.author.name} for fanart frequency")
 
 
-def is_oc_fanart(post):
+def is_fanart(post):
     return (
         post.subreddit.display_name == config["subreddit"]
-        and post.link_flair_text == "OC Fanart"
-        or (post.link_flair_text == "Fanart Misc" and post.is_original_content)
+        and post.link_flair_text == "Fanart"
     )
 
 
