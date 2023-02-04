@@ -261,11 +261,11 @@ def check_fanart_frequency(reddit, config, post):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
-        if datetime.now(timezone.utc) - created_at > timedelta(days=7):
+        if datetime.now(timezone.utc) - created_at > timedelta(days=6, hours=23, minutes=45):
             break
         if is_fanart(submission):
             count += 1
-        if count > 1:
+        if count > 2:
             remove(post, f"Recent fanart (id: {submission.id})", message="You can only submit one fanart every 7 days.")
             break
 
@@ -291,7 +291,7 @@ def check_clip_frequency(reddit, config, post):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
-        if datetime.now(timezone.utc) - created_at > timedelta(days=30):
+        if datetime.now(timezone.utc) - created_at > timedelta(days=29, hours=23, minutes=45):
             break
         if is_clip(submission):
             count += 1
@@ -318,7 +318,7 @@ def check_video_edit_frequency(reddit, config, post):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
-        if datetime.now(timezone.utc) - created_at > timedelta(days=30):
+        if datetime.now(timezone.utc) - created_at > timedelta(days=29, hours=23, minutes=45):
             break
         if is_video_edit(submission):
             count += 1
@@ -345,7 +345,7 @@ def check_video_frequency(reddit, config, post):
             continue
 
         created_at = datetime.fromtimestamp(submission.created_utc, tz=timezone.utc)
-        if datetime.now(timezone.utc) - created_at > timedelta(days=7):
+        if datetime.now(timezone.utc) - created_at > timedelta(days=6, hours=23, minutes=45):
             break
         if is_video(submission):
             count += 1
