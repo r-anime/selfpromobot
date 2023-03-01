@@ -266,7 +266,7 @@ def check_fanart_frequency(reddit, config, post):
         if is_fanart(submission):
             count += 1
         if count > 2:
-            remove(post, f"Recent fanart (id: {submission.id})", message="You can only submit one fanart every 7 days.")
+            remove(post, f"Recent fanart (id: {submission.id})", message="You may only submit two fanart posts in a 7-day period.")
             break
 
     logger.debug(f"Finished checking history of {post.author.name} for fanart frequency")
