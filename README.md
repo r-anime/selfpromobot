@@ -1,3 +1,5 @@
+**This repo has been archived.** Functionality has been moved to [r-anime/modbot](https://github.com/r-anime/modbot).
+
 # Self-Promotion checker bot
 
 Python script that automatically detects and reports users that seem to be below the 10% self-promotion posts ratio. Built on [PRAW](https://github.com/praw-dev/praw).
